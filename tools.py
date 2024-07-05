@@ -5,14 +5,13 @@ import pickle
 import re
 import uuid
 
-import gym
+import gym.spaces as spaces
 import numpy as np
 import tensorflow as tf
-import tensorflow.compat.v1 as tf1
+from tensorflow import compat as tf1
 import tensorflow_probability as tfp
-from tensorflow.keras.mixed_precision import experimental as prec
+from keras import mixed_precision as prec
 from tensorflow_probability import distributions as tfd
-
 
 class AttrDict(dict):
 
@@ -67,8 +66,8 @@ def video_summary(name, video, step=None, fps=20):
   B, T, H, W, C = video.shape
   try:
     frames = video.transpose((1, 2, 0, 3, 4)).reshape((T, H, B * W, C))
-    summary = tf1.Summary()
-    image = tf1.Summary.Image(height=B * H, width=T * W, colorspace=C)
+    summary = tf1.v1.Summary()
+    image = tf1.v1.Summary.Image(height=B * H, width=T * W, colorspace=C)
     image.encoded_image_string = encode_gif(frames, fps)
     summary.value.add(tag=name + '/gif', image=image)
     tf.summary.experimental.write_raw_pb(summary.SerializeToString(), step)
@@ -196,14 +195,14 @@ class DummyEnv:
   def observation_space(self):
     low = np.zeros([64, 64, 3], dtype=np.uint8)
     high = 255 * np.ones([64, 64, 3], dtype=np.uint8)
-    spaces = {'image': gym.spaces.Box(low, high)}
-    return gym.spaces.Dict(spaces)
+    box = {'image': spaces.Box(low, high)}
+    return spaces.Dict(box)
 
   @property
   def action_space(self):
     low = -np.ones([5], dtype=np.float32)
     high = np.ones([5], dtype=np.float32)
-    return gym.spaces.Box(low, high)
+    return spaces.Box(low, high)
 
   def reset(self):
     self._step = 0

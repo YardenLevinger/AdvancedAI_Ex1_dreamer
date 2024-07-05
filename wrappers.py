@@ -4,7 +4,7 @@ import sys
 import threading
 import traceback
 
-import gym
+import gym.spaces as spaces
 import numpy as np
 from PIL import Image
 
@@ -28,18 +28,18 @@ class DeepMindControl:
 
   @property
   def observation_space(self):
-    spaces = {}
+    spaces_dict = {}
     for key, value in self._env.observation_spec().items():
-      spaces[key] = gym.spaces.Box(
+      spaces_dict[key] = spaces.Box(
           -np.inf, np.inf, value.shape, dtype=np.float32)
-    spaces['image'] = gym.spaces.Box(
+    spaces_dict['image'] = spaces.Box(
         0, 255, self._size + (3,), dtype=np.uint8)
-    return gym.spaces.Dict(spaces)
+    return spaces.Dict(spaces_dict)
 
   @property
   def action_space(self):
     spec = self._env.action_spec()
-    return gym.spaces.Box(spec.minimum, spec.maximum, dtype=np.float32)
+    return spaces.Box(spec.minimum, spec.maximum, dtype=np.float32)
 
   def step(self, action):
     time_step = self._env.step(action)
@@ -87,8 +87,8 @@ class Atari:
   @property
   def observation_space(self):
     shape = self._size + (1 if self._grayscale else 3,)
-    space = gym.spaces.Box(low=0, high=255, shape=shape, dtype=np.uint8)
-    return gym.spaces.Dict({'image': space})
+    space = spaces.Box(low=0, high=255, shape=shape, dtype=np.uint8)
+    return spaces.Dict({'image': space})
 
   @property
   def action_space(self):
@@ -259,7 +259,7 @@ class NormalizeActions:
   def action_space(self):
     low = np.where(self._mask, -np.ones_like(self._low), self._low)
     high = np.where(self._mask, np.ones_like(self._low), self._high)
-    return gym.spaces.Box(low, high, dtype=np.float32)
+    return spaces.Box(low, high, dtype=np.float32)
 
   def step(self, action):
     original = (action + 1) / 2 * (self._high - self._low) + self._low
@@ -278,8 +278,8 @@ class ObsDict:
 
   @property
   def observation_space(self):
-    spaces = {self._key: self._env.observation_space}
-    return gym.spaces.Dict(spaces)
+    spaces_dict = {self._key: self._env.observation_space}
+    return spaces.Dict(spaces_dict)
 
   @property
   def action_space(self):
@@ -299,7 +299,7 @@ class ObsDict:
 class OneHotAction:
 
   def __init__(self, env):
-    assert isinstance(env.action_space, gym.spaces.Discrete)
+    assert isinstance(env.action_space, spaces.Discrete)
     self._env = env
 
   def __getattr__(self, name):
@@ -308,7 +308,7 @@ class OneHotAction:
   @property
   def action_space(self):
     shape = (self._env.action_space.n,)
-    space = gym.spaces.Box(low=0, high=1, shape=shape, dtype=np.float32)
+    space = spaces.Box(low=0, high=1, shape=shape, dtype=np.float32)
     space.sample = self._sample_action
     return space
 
@@ -341,10 +341,10 @@ class RewardObs:
 
   @property
   def observation_space(self):
-    spaces = self._env.observation_space.spaces
-    assert 'reward' not in spaces
-    spaces['reward'] = gym.spaces.Box(-np.inf, np.inf, dtype=np.float32)
-    return gym.spaces.Dict(spaces)
+    spaces_dict = self._env.observation_space.spaces
+    assert 'reward' not in spaces_dict
+    spaces_dict['reward'] = spaces.Box(-np.inf, np.inf, dtype=np.float32)
+    return spaces.Dict(spaces_dict)
 
   def step(self, action):
     obs, reward, done, info = self._env.step(action)
